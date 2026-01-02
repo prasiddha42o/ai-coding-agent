@@ -1,0 +1,46 @@
+# --- Python / backend ---
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+.venv/
+venv/
+env/
+.env
+.env.*
+!.env.example
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+htmlcov/
+.coverage
+coverage.xml
+backend/alembic/versions/__pycache__/
+
+# --- Node / frontend ---
+node_modules/
+.next/
+out/
+dist/
+build/
+.turbo/
+*.tsbuildinfo
+frontend/.env*.local
+
+# --- Repo workspaces (imported user repositories & uploads) ---
+backend/workspaces/
+backend/uploads/
+*.zip
+
+# --- Editors / OS ---
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# --- Docker ---
+docker/volumes/
+
+# --- Logs ---
+*.log
+npm-debug.log*
