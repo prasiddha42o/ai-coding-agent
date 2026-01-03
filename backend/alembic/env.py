@@ -6,17 +6,9 @@ from sqlalchemy import engine_from_config, pool
 from backend.core.config import get_settings
 from backend.database.session import Base
 
-# Import all models so they register on Base.metadata before autogenerate runs.
-from backend.models import (  # noqa: F401
-    change,
-    commit,
-    file,
-    plan,
-    repository,
-    session as session_model,
-    test_run,
-    user,
-)
+# Importing backend.models registers every ORM model on Base.metadata so
+# autogenerate can see them.
+import backend.models  # noqa: F401
 
 config = context.config
 if config.config_file_name is not None:
