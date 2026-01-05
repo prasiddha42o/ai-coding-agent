@@ -7,7 +7,7 @@ from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from backend.database.session import Base
-from backend.models.mixins import TimestampMixin, UUIDPrimaryKeyMixin
+from backend.models.mixins import TimestampMixin, UUIDPrimaryKeyMixin, utcnow
 
 
 class User(UUIDPrimaryKeyMixin, TimestampMixin, Base):
@@ -35,6 +35,6 @@ class RefreshToken(UUIDPrimaryKeyMixin, Base):
     token_hash: Mapped[str] = mapped_column(String(255), unique=True, index=True)
     expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
     revoked: Mapped[bool] = mapped_column(Boolean, default=False)
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
 
     user: Mapped["User"] = relationship(back_populates="refresh_tokens")

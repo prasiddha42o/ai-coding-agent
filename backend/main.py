@@ -5,6 +5,7 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
+from backend.api.routes import auth
 from backend.core.config import get_settings
 from backend.core.exceptions import AppError
 from backend.core.logging import configure_logging
@@ -42,3 +43,6 @@ async def app_error_handler(request: Request, exc: AppError) -> JSONResponse:
 @app.get("/health", tags=["health"])
 async def health_check() -> dict:
     return {"status": "ok", "environment": settings.environment}
+
+
+app.include_router(auth.router, prefix=settings.api_v1_prefix)
