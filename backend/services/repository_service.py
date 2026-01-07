@@ -3,6 +3,7 @@ import logging
 import re
 import shutil
 import uuid
+from datetime import datetime, timezone
 from pathlib import Path
 
 import git
@@ -15,6 +16,7 @@ from backend.models.enums import RepositorySourceType, RepositoryStatus
 from backend.models.repository import Repository
 from backend.models.user import User
 from backend.repositories import repository_repository
+from backend.tools.metadata_extractor import extract_metadata
 from backend.utils.fs import flatten_single_root, safe_extract_zip, slugify
 
 logger = logging.getLogger(__name__)
@@ -45,6 +47,32 @@ def get_owned_repository(db: Session, repository_id: uuid.UUID, owner_id: uuid.U
 
 def list_repositories(db: Session, owner_id: uuid.UUID) -> list[Repository]:
     return repository_repository.list_by_owner(db, owner_id)
+
+
+def _run_metadata_extraction(db: Session, repository: Repository) -> Repository:
+    """Extract language/framework/dependency metadata and mark the repo ready.
+
+    Runs synchronously right after clone/extract — it's a lightweight
+    filesystem walk (no LLM calls), so it doesn't need its own background
+    task the way the future deep knowledge-graph indexing pass will.
+    """
+    repository.status = RepositoryStatus.INDEXING
+    db.commit()
+
+    try:
+        metadata = extract_metadata(Path(repository.local_path))
+    except Exception as exc:  # noqa: BLE001
+        logger.exception("Metadata extraction failed for repository %s", repository.id)
+        repository.status = RepositoryStatus.ERROR
+        repository.error_message = f"Metadata extraction failed: {exc}"
+        db.commit()
+        return repository
+
+    repository.metadata_json = metadata.model_dump()
+    repository.status = RepositoryStatus.READY
+    repository.last_indexed_at = datetime.now(timezone.utc)
+    db.commit()
+    return repository
 
 
 def import_from_github(
@@ -80,9 +108,7 @@ def import_from_github(
         db.commit()
         return repository
 
-    repository.status = RepositoryStatus.PENDING  # awaiting the metadata/indexing pass
-    db.commit()
-    return repository
+    return _run_metadata_extraction(db, repository)
 
 
 def import_from_zip(db: Session, owner: User, upload_file: UploadFile, name: str | None) -> Repository:
@@ -130,9 +156,7 @@ def import_from_zip(db: Session, owner: User, upload_file: UploadFile, name: str
     finally:
         tmp_zip_path.unlink(missing_ok=True)
 
-    repository.status = RepositoryStatus.PENDING
-    db.commit()
-    return repository
+    return _run_metadata_extraction(db, repository)
 
 
 def refresh_repository(db: Session, repository: Repository) -> Repository:
@@ -149,10 +173,8 @@ def refresh_repository(db: Session, repository: Repository) -> Repository:
         db.commit()
         return repository
 
-    repository.status = RepositoryStatus.PENDING
     repository.error_message = None
-    db.commit()
-    return repository
+    return _run_metadata_extraction(db, repository)
 
 
 def delete_repository(db: Session, repository: Repository) -> None:
