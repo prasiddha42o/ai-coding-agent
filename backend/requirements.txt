@@ -12,7 +12,10 @@ passlib[bcrypt]==1.7.4
 python-multipart==0.0.20
 
 anthropic==0.42.0
-tree-sitter==0.23.2
+# tree-sitter-languages 1.10.2 is unmaintained and incompatible with
+# tree-sitter>=0.22 (its bundled grammars are compiled against the older
+# Language/Query C API); pin tree-sitter itself back to keep it working.
+tree-sitter==0.21.3
 tree-sitter-languages==1.10.2
 gitpython==3.1.43
 

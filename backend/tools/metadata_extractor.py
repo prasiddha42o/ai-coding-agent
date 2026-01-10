@@ -9,20 +9,7 @@ import tomllib
 from pathlib import Path
 
 from backend.schemas.repository import RepositoryMetadata
-
-IGNORED_DIRS = {
-    ".git", "node_modules", "__pycache__", ".venv", "venv", ".next", "dist",
-    "build", "target", "vendor", ".pytest_cache", ".mypy_cache", "coverage",
-    ".turbo", "out", ".idea", ".vscode",
-}
-
-LANGUAGE_EXTENSIONS = {
-    ".py": "Python", ".js": "JavaScript", ".jsx": "JavaScript",
-    ".mjs": "JavaScript", ".ts": "TypeScript", ".tsx": "TypeScript",
-    ".go": "Go", ".rs": "Rust", ".java": "Java", ".kt": "Kotlin",
-    ".rb": "Ruby", ".php": "PHP", ".c": "C", ".h": "C", ".cpp": "C++",
-    ".hpp": "C++", ".cs": "C#", ".swift": "Swift", ".scala": "Scala",
-}
+from backend.tools.constants import IGNORED_DIRS, LANGUAGE_EXTENSIONS
 
 DEPENDENCY_FILES = {
     "package.json", "requirements.txt", "requirements-dev.txt", "pyproject.toml",
