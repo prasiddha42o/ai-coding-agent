@@ -44,3 +44,6 @@ class Repository(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     sessions: Mapped[list["CodingSession"]] = relationship(
         back_populates="repository", cascade="all, delete-orphan"
     )
+    knowledge_graph_nodes: Mapped[list["KnowledgeGraphNode"]] = relationship(
+        back_populates="repository", cascade="all, delete-orphan"
+    )

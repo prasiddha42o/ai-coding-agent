@@ -2,6 +2,7 @@
 from backend.models.change import Change
 from backend.models.commit import Commit
 from backend.models.file import File
+from backend.models.knowledge_graph import KnowledgeGraphEdge, KnowledgeGraphNode
 from backend.models.plan import Plan
 from backend.models.repository import Repository
 from backend.models.session import CodingSession
@@ -13,6 +14,8 @@ __all__ = [
     "RefreshToken",
     "Repository",
     "File",
+    "KnowledgeGraphNode",
+    "KnowledgeGraphEdge",
     "CodingSession",
     "Plan",
     "Change",

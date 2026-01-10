@@ -16,6 +16,7 @@ from backend.models.enums import RepositorySourceType, RepositoryStatus
 from backend.models.repository import Repository
 from backend.models.user import User
 from backend.repositories import repository_repository
+from backend.services.knowledge_graph_service import build_knowledge_graph
 from backend.tools.metadata_extractor import extract_metadata
 from backend.utils.fs import flatten_single_root, safe_extract_zip, slugify
 
@@ -50,21 +51,23 @@ def list_repositories(db: Session, owner_id: uuid.UUID) -> list[Repository]:
 
 
 def _run_metadata_extraction(db: Session, repository: Repository) -> Repository:
-    """Extract language/framework/dependency metadata and mark the repo ready.
+    """Extract metadata, build the knowledge graph, and mark the repo ready.
 
-    Runs synchronously right after clone/extract — it's a lightweight
-    filesystem walk (no LLM calls), so it doesn't need its own background
-    task the way the future deep knowledge-graph indexing pass will.
+    Runs synchronously right after clone/extract. Both passes are pure
+    static analysis (filesystem walk + tree-sitter, no LLM calls) over what
+    is, even for large repos, at most a few thousand files — so neither
+    needs its own background task/worker queue for a project at this scale.
     """
     repository.status = RepositoryStatus.INDEXING
     db.commit()
 
     try:
         metadata = extract_metadata(Path(repository.local_path))
+        build_knowledge_graph(db, repository)
     except Exception as exc:  # noqa: BLE001
-        logger.exception("Metadata extraction failed for repository %s", repository.id)
+        logger.exception("Indexing failed for repository %s", repository.id)
         repository.status = RepositoryStatus.ERROR
-        repository.error_message = f"Metadata extraction failed: {exc}"
+        repository.error_message = f"Indexing failed: {exc}"
         db.commit()
         return repository
 
