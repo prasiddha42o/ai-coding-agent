@@ -19,6 +19,7 @@ class Plan(UUIDPrimaryKeyMixin, TimestampMixin, Base):
         UUID(as_uuid=True), ForeignKey("sessions.id", ondelete="CASCADE"), index=True
     )
     user_prompt: Mapped[str] = mapped_column(Text, nullable=False)
+    summary: Mapped[str | None] = mapped_column(Text, nullable=True)
     status: Mapped[PlanStatus] = mapped_column(
         SAEnum(PlanStatus, name="plan_status"), default=PlanStatus.PENDING_APPROVAL
     )

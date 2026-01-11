@@ -25,6 +25,7 @@ class PlanRead(BaseModel):
     id: uuid.UUID
     session_id: uuid.UUID
     user_prompt: str
+    summary: str | None
     status: PlanStatus
     complexity: ComplexityLevel
     steps: list[PlanStep]
