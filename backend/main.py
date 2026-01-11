@@ -5,7 +5,7 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
-from backend.api.routes import auth, knowledge_graph, repositories
+from backend.api.routes import auth, knowledge_graph, plans, repositories, sessions
 from backend.core.config import get_settings
 from backend.core.exceptions import AppError
 from backend.core.logging import configure_logging
@@ -48,3 +48,5 @@ async def health_check() -> dict:
 app.include_router(auth.router, prefix=settings.api_v1_prefix)
 app.include_router(repositories.router, prefix=settings.api_v1_prefix)
 app.include_router(knowledge_graph.router, prefix=settings.api_v1_prefix)
+app.include_router(sessions.router, prefix=settings.api_v1_prefix)
+app.include_router(plans.router, prefix=settings.api_v1_prefix)
