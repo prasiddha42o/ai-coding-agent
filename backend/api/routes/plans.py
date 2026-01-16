@@ -5,12 +5,14 @@ from fastapi import APIRouter, Depends, status
 from sqlalchemy.orm import Session
 
 from backend.agents.code_generation_agent import generate_changes
+from backend.agents.review_agent import review_changes
 from backend.auth.dependencies import get_current_user
 from backend.database.session import get_db
 from backend.models.user import User
 from backend.repositories import change_repository
 from backend.schemas.change import ChangeRead
 from backend.schemas.plan import PlanRead
+from backend.schemas.review import ReviewResponse
 from backend.services import plan_service
 
 router = APIRouter(prefix="/plans", tags=["plans"])
@@ -65,3 +67,15 @@ def list_plan_changes(
 ):
     plan_service.get_owned_plan(db, plan_id, current_user.id)
     return change_repository.list_by_plan(db, plan_id)
+
+
+@router.post("/{plan_id}/review", response_model=ReviewResponse)
+def review_plan_changes(
+    plan_id: uuid.UUID,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    plan = plan_service.get_owned_plan(db, plan_id, current_user.id)
+    summary = review_changes(db, plan)
+    changes = change_repository.list_by_plan(db, plan_id)
+    return ReviewResponse(summary=summary, changes=changes)
