@@ -13,7 +13,7 @@ from backend.repositories import change_repository
 from backend.schemas.change import ChangeRead
 from backend.schemas.plan import PlanRead
 from backend.schemas.review import ReviewResponse
-from backend.services import plan_service
+from backend.services import change_service, plan_service
 
 router = APIRouter(prefix="/plans", tags=["plans"])
 
@@ -79,3 +79,13 @@ def review_plan_changes(
     summary = review_changes(db, plan)
     changes = change_repository.list_by_plan(db, plan_id)
     return ReviewResponse(summary=summary, changes=changes)
+
+
+@router.post("/{plan_id}/apply", response_model=list[ChangeRead])
+def apply_plan_changes(
+    plan_id: uuid.UUID,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    plan = plan_service.get_owned_plan(db, plan_id, current_user.id)
+    return change_service.apply_changes(db, plan)
