@@ -11,7 +11,8 @@ from backend.agents.testing_agent import run_session_tests
 from backend.auth.dependencies import get_current_user
 from backend.database.session import get_db
 from backend.models.user import User
-from backend.repositories import test_run_repository
+from backend.repositories import commit_repository, test_run_repository
+from backend.schemas.commit import CommitRead
 from backend.schemas.plan import PlanRead, PlanRequest
 from backend.schemas.session import SessionRead
 from backend.schemas.test_run import TestRunRead
@@ -93,3 +94,13 @@ def list_tests(
 ):
     session_service.get_owned_session(db, session_id, current_user.id)
     return test_run_repository.list_by_session(db, session_id)
+
+
+@router.get("/sessions/{session_id}/commits", response_model=list[CommitRead])
+def list_commits(
+    session_id: uuid.UUID,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    session_service.get_owned_session(db, session_id, current_user.id)
+    return commit_repository.list_by_session(db, session_id)

@@ -17,6 +17,7 @@ from backend.models.repository import Repository
 from backend.models.user import User
 from backend.repositories import repository_repository
 from backend.services.knowledge_graph_service import build_knowledge_graph
+from backend.tools.git_ops import ensure_git_repo
 from backend.tools.metadata_extractor import extract_metadata
 from backend.utils.fs import flatten_single_root, safe_extract_zip, slugify
 
@@ -149,6 +150,9 @@ def import_from_zip(db: Session, owner: User, upload_file: UploadFile, name: str
 
         safe_extract_zip(tmp_zip_path, local_path, max_bytes)
         flatten_single_root(local_path)
+        # Git-init now, before any agent ever writes to this working
+        # directory — see tools/git_ops.py for why the ordering matters.
+        ensure_git_repo(local_path)
     except Exception as exc:  # noqa: BLE001
         logger.exception("ZIP import failed for repository %s", repository_id)
         shutil.rmtree(local_path, ignore_errors=True)
