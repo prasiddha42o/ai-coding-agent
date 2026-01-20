@@ -2,10 +2,12 @@
 import uuid
 
 from fastapi import APIRouter, Depends, status
+from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 
 from backend.agents.code_generation_agent import generate_changes
 from backend.agents.git_session_agent import create_commit
+from backend.agents.orchestrator import run_pipeline
 from backend.agents.review_agent import review_changes
 from backend.auth.dependencies import get_current_user
 from backend.database.session import get_db
@@ -101,3 +103,17 @@ def commit_plan_changes(
 ):
     plan = plan_service.get_owned_plan(db, plan_id, current_user.id)
     return create_commit(db, plan)
+
+
+@router.post("/{plan_id}/run")
+def run_plan_pipeline(
+    plan_id: uuid.UUID,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Streams generate -> review -> apply -> test -> commit as newline-delimited
+    `data: {...}` events (fetch + ReadableStream on the client, not
+    EventSource — EventSource can't send the Authorization header this API
+    requires)."""
+    plan = plan_service.get_owned_plan(db, plan_id, current_user.id)
+    return StreamingResponse(run_pipeline(db, plan), media_type="text/event-stream")
