@@ -1,14 +1,13 @@
 """Change model — a single file edit produced by the Code Generation Agent."""
 import uuid
 
-from sqlalchemy import Enum as SAEnum
 from sqlalchemy import ForeignKey, String, Text
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from backend.database.session import Base
 from backend.models.enums import ChangeStatus, ChangeType
-from backend.models.mixins import TimestampMixin, UUIDPrimaryKeyMixin
+from backend.models.mixins import TimestampMixin, UUIDPrimaryKeyMixin, enum_column
 
 
 class Change(UUIDPrimaryKeyMixin, TimestampMixin, Base):
@@ -18,9 +17,9 @@ class Change(UUIDPrimaryKeyMixin, TimestampMixin, Base):
         UUID(as_uuid=True), ForeignKey("plans.id", ondelete="CASCADE"), index=True
     )
     file_path: Mapped[str] = mapped_column(String(1024), nullable=False)
-    change_type: Mapped[ChangeType] = mapped_column(SAEnum(ChangeType, name="change_type"))
+    change_type: Mapped[ChangeType] = mapped_column(enum_column(ChangeType, name="change_type"))
     status: Mapped[ChangeStatus] = mapped_column(
-        SAEnum(ChangeStatus, name="change_status"), default=ChangeStatus.PROPOSED
+        enum_column(ChangeStatus, name="change_status"), default=ChangeStatus.PROPOSED
     )
 
     original_content: Mapped[str | None] = mapped_column(Text, nullable=True)

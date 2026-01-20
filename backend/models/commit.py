@@ -1,14 +1,13 @@
 """Commit model — output of the Git & Session Agent for a coding session."""
 import uuid
 
-from sqlalchemy import Enum as SAEnum
 from sqlalchemy import ForeignKey, String, Text
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from backend.database.session import Base
 from backend.models.enums import CommitStatus
-from backend.models.mixins import TimestampMixin, UUIDPrimaryKeyMixin
+from backend.models.mixins import TimestampMixin, UUIDPrimaryKeyMixin, enum_column
 
 
 class Commit(UUIDPrimaryKeyMixin, TimestampMixin, Base):
@@ -22,7 +21,7 @@ class Commit(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     branch: Mapped[str] = mapped_column(String(255), default="main")
     sha: Mapped[str | None] = mapped_column(String(64), nullable=True)
     status: Mapped[CommitStatus] = mapped_column(
-        SAEnum(CommitStatus, name="commit_status"), default=CommitStatus.DRAFT
+        enum_column(CommitStatus, name="commit_status"), default=CommitStatus.DRAFT
     )
 
     session: Mapped["CodingSession"] = relationship(back_populates="commits")

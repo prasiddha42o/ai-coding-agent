@@ -2,14 +2,13 @@
 import uuid
 from datetime import datetime
 
-from sqlalchemy import Enum as SAEnum
 from sqlalchemy import DateTime, ForeignKey, String
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from backend.database.session import Base
 from backend.models.enums import SessionStatus
-from backend.models.mixins import TimestampMixin, UUIDPrimaryKeyMixin
+from backend.models.mixins import TimestampMixin, UUIDPrimaryKeyMixin, enum_column
 
 
 class CodingSession(UUIDPrimaryKeyMixin, TimestampMixin, Base):
@@ -23,7 +22,7 @@ class CodingSession(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     )
     title: Mapped[str | None] = mapped_column(String(255), nullable=True)
     status: Mapped[SessionStatus] = mapped_column(
-        SAEnum(SessionStatus, name="session_status"), default=SessionStatus.ACTIVE
+        enum_column(SessionStatus, name="session_status"), default=SessionStatus.ACTIVE
     )
     completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 

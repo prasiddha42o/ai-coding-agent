@@ -2,14 +2,13 @@
 import uuid
 from datetime import datetime
 
-from sqlalchemy import Enum as SAEnum
 from sqlalchemy import DateTime, ForeignKey, String, Text
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from backend.database.session import Base
 from backend.models.enums import RepositorySourceType, RepositoryStatus
-from backend.models.mixins import TimestampMixin, UUIDPrimaryKeyMixin
+from backend.models.mixins import TimestampMixin, UUIDPrimaryKeyMixin, enum_column
 
 
 class Repository(UUIDPrimaryKeyMixin, TimestampMixin, Base):
@@ -20,14 +19,14 @@ class Repository(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     )
     name: Mapped[str] = mapped_column(String(255), nullable=False)
     source_type: Mapped[RepositorySourceType] = mapped_column(
-        SAEnum(RepositorySourceType, name="repository_source_type")
+        enum_column(RepositorySourceType, name="repository_source_type")
     )
     source_url: Mapped[str | None] = mapped_column(String(1024), nullable=True)
     default_branch: Mapped[str] = mapped_column(String(255), default="main")
     local_path: Mapped[str] = mapped_column(String(1024), nullable=False)
 
     status: Mapped[RepositoryStatus] = mapped_column(
-        SAEnum(RepositoryStatus, name="repository_status"), default=RepositoryStatus.PENDING
+        enum_column(RepositoryStatus, name="repository_status"), default=RepositoryStatus.PENDING
     )
     error_message: Mapped[str | None] = mapped_column(Text, nullable=True)
 

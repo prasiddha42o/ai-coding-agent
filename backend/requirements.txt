@@ -10,6 +10,10 @@ psycopg[binary]==3.2.3
 
 python-jose[cryptography]==3.3.0
 passlib[bcrypt]==1.7.4
+# passlib 1.7.4 (unmaintained since 2020) probes bcrypt with a self-test that
+# raises on bcrypt>=4.1's stricter 72-byte-secret check; pin bcrypt back to
+# keep password hashing working.
+bcrypt==4.0.1
 python-multipart==0.0.20
 
 anthropic==0.42.0
