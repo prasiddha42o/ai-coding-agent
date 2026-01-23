@@ -1,4 +1,5 @@
 import { API_BASE_URL } from "@/lib/config";
+import { clearTokens, getAccessToken, getRefreshToken, setTokens } from "@/lib/token-storage";
 
 export class ApiError extends Error {
   status: number;
@@ -11,27 +12,17 @@ export class ApiError extends Error {
   }
 }
 
-let accessTokenGetter: () => string | null = () => null;
-
-/**
- * Wired up by the auth context once it exists (see app/providers.tsx / the
- * auth provider added alongside the login flow) — kept as an injectable
- * getter rather than importing the auth context here, so this module has
- * no dependency on React and can be used from plain functions too.
- */
-export function setAccessTokenGetter(getter: () => string | null): void {
-  accessTokenGetter = getter;
-}
-
 interface RequestOptions extends Omit<RequestInit, "body"> {
   body?: unknown;
+  /** Attach the stored access token. Default true — pass false for
+   * register/login/refresh themselves. */
   auth?: boolean;
 }
 
 function buildHeaders(auth: boolean, provided?: HeadersInit): Headers {
   const headers = new Headers(provided);
   if (auth) {
-    const token = accessTokenGetter();
+    const token = getAccessToken();
     if (token) headers.set("Authorization", `Bearer ${token}`);
   }
   return headers;
@@ -46,7 +37,39 @@ async function readErrorDetail(response: Response): Promise<string> {
   }
 }
 
-export async function apiFetch<T>(path: string, options: RequestOptions = {}): Promise<T> {
+let refreshPromise: Promise<boolean> | null = null;
+
+/**
+ * Rotates the refresh token exactly once even if several requests 401 at
+ * the same moment — refresh tokens are single-use (see
+ * backend/services/auth_service.py), so firing off a separate refresh call
+ * per failed request would invalidate all but one of them.
+ */
+async function refreshAccessToken(): Promise<boolean> {
+  const refreshToken = getRefreshToken();
+  if (!refreshToken) return false;
+
+  if (!refreshPromise) {
+    refreshPromise = fetch(`${API_BASE_URL}/auth/refresh`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ refresh_token: refreshToken }),
+    })
+      .then(async (response) => {
+        if (!response.ok) return false;
+        const data = await response.json();
+        setTokens(data.access_token, data.refresh_token);
+        return true;
+      })
+      .catch(() => false)
+      .finally(() => {
+        refreshPromise = null;
+      });
+  }
+  return refreshPromise;
+}
+
+function buildRequestInit(options: RequestOptions): RequestInit {
   const { body, auth = true, headers, ...rest } = options;
   const requestHeaders = buildHeaders(auth, headers);
 
@@ -58,11 +81,22 @@ export async function apiFetch<T>(path: string, options: RequestOptions = {}): P
     requestBody = JSON.stringify(body);
   }
 
-  const response = await fetch(`${API_BASE_URL}${path}`, {
-    ...rest,
-    headers: requestHeaders,
-    body: requestBody,
-  });
+  return { ...rest, headers: requestHeaders, body: requestBody };
+}
+
+export async function apiFetch<T>(path: string, options: RequestOptions = {}): Promise<T> {
+  const auth = options.auth ?? true;
+
+  let response = await fetch(`${API_BASE_URL}${path}`, buildRequestInit(options));
+
+  if (response.status === 401 && auth && !path.startsWith("/auth/")) {
+    const refreshed = await refreshAccessToken();
+    if (refreshed) {
+      response = await fetch(`${API_BASE_URL}${path}`, buildRequestInit(options));
+    } else {
+      clearTokens();
+    }
+  }
 
   if (!response.ok) {
     throw new ApiError(response.status, await readErrorDetail(response));
@@ -83,18 +117,15 @@ export async function apiStream(
   onEvent: (event: Record<string, unknown>) => void,
   options: RequestOptions = {},
 ): Promise<void> {
-  const { body, auth = true, headers, ...rest } = options;
-  const requestHeaders = buildHeaders(auth, headers);
-  if (body !== undefined) {
-    requestHeaders.set("Content-Type", "application/json");
-  }
+  const requestInit = buildRequestInit({ method: "POST", ...options });
+  let response = await fetch(`${API_BASE_URL}${path}`, requestInit);
 
-  const response = await fetch(`${API_BASE_URL}${path}`, {
-    ...rest,
-    method: rest.method ?? "POST",
-    headers: requestHeaders,
-    body: body !== undefined ? JSON.stringify(body) : undefined,
-  });
+  if (response.status === 401 && (options.auth ?? true)) {
+    const refreshed = await refreshAccessToken();
+    if (refreshed) {
+      response = await fetch(`${API_BASE_URL}${path}`, buildRequestInit({ method: "POST", ...options }));
+    }
+  }
 
   if (!response.ok || !response.body) {
     throw new ApiError(response.status, await readErrorDetail(response));

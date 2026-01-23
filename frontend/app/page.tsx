@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
@@ -25,8 +26,8 @@ export default function Home() {
       <header className="border-border/60 flex items-center justify-between border-b px-6 py-4">
         <span className="text-sm font-semibold tracking-tight">AI Coding Agent</span>
         <nav className="flex items-center gap-2">
-          <Button variant="ghost" size="sm" render={<a href="/login">Sign in</a>} />
-          <Button size="sm" render={<a href="/register">Get started</a>} />
+          <Button variant="ghost" size="sm" render={<Link href="/login">Sign in</Link>} />
+          <Button size="sm" render={<Link href="/register">Get started</Link>} />
         </nav>
       </header>
 
@@ -41,8 +42,8 @@ export default function Home() {
             without your explicit approval.
           </p>
           <div className="flex gap-3">
-            <Button size="lg" render={<a href="/register">Import a repository</a>} />
-            <Button size="lg" variant="outline" render={<a href="/login">Sign in</a>} />
+            <Button size="lg" render={<Link href="/register">Import a repository</Link>} />
+            <Button size="lg" variant="outline" render={<Link href="/login">Sign in</Link>} />
           </div>
         </div>
 
