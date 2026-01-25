@@ -36,13 +36,13 @@ export interface Token {
 }
 
 export interface RepositoryMetadata {
-  language: string | null;
-  framework: string | null;
-  build_tool: string | null;
-  package_manager: string | null;
-  dependency_files: string[];
-  config_files: string[];
-  folder_hierarchy: string[];
+  language?: string | null;
+  framework?: string | null;
+  build_tool?: string | null;
+  package_manager?: string | null;
+  dependency_files?: string[];
+  config_files?: string[];
+  folder_hierarchy?: string[];
 }
 
 export interface Repository {
@@ -53,7 +53,8 @@ export interface Repository {
   default_branch: string;
   status: RepositoryStatus;
   error_message: string | null;
-  metadata_json: RepositoryMetadata | Record<string, never>;
+  // `{}` before the metadata-extraction pass completes — every field optional.
+  metadata_json: RepositoryMetadata;
   last_indexed_at: string | null;
   created_at: string;
   updated_at: string;
