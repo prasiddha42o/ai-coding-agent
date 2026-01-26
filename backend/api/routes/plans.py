@@ -114,6 +114,11 @@ def run_plan_pipeline(
     """Streams generate -> review -> apply -> test -> commit as newline-delimited
     `data: {...}` events (fetch + ReadableStream on the client, not
     EventSource — EventSource can't send the Authorization header this API
-    requires)."""
-    plan = plan_service.get_owned_plan(db, plan_id, current_user.id)
-    return StreamingResponse(run_pipeline(db, plan), media_type="text/event-stream")
+    requires).
+
+    Only this request's ownership check uses the request-scoped `db`
+    session — the generator itself opens and owns a separate session for
+    its full (much longer) lifetime; see orchestrator.run_pipeline for why.
+    """
+    plan_service.get_owned_plan(db, plan_id, current_user.id)
+    return StreamingResponse(run_pipeline(plan_id), media_type="text/event-stream")

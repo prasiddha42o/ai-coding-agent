@@ -13,6 +13,7 @@ steps instead of running the whole thing at once.
 """
 import json
 import logging
+import uuid
 from collections.abc import Iterator
 from typing import Any
 
@@ -22,6 +23,7 @@ from backend.agents.code_generation_agent import generate_changes
 from backend.agents.git_session_agent import create_commit
 from backend.agents.review_agent import review_changes
 from backend.agents.testing_agent import run_session_tests
+from backend.database.session import SessionLocal
 from backend.models.enums import PlanStatus, TestStatus
 from backend.models.plan import Plan
 from backend.schemas.change import ChangeRead
@@ -37,7 +39,29 @@ def _event(stage: str, status: str, **data: Any) -> str:
     return f"data: {json.dumps(payload, default=str)}\n\n"
 
 
-def run_pipeline(db: Session, plan: Plan) -> Iterator[str]:
+def run_pipeline(plan_id: uuid.UUID) -> Iterator[str]:
+    """Owns its own DB session for the generator's entire lifetime.
+
+    FastAPI's `Depends(get_db)` session is torn down as soon as the route
+    handler *returns* the StreamingResponse object — not once the stream
+    finishes sending. Since this generator's actual work happens later, as
+    Starlette pulls chunks from it, a request-scoped session would already
+    be closed by the time any of this code runs, and every ORM object
+    touched here would raise DetachedInstanceError. Opening a session here
+    ties its lifetime to the generator's instead.
+    """
+    db = SessionLocal()
+    try:
+        plan = db.get(Plan, plan_id)
+        if plan is None:
+            yield _event("pipeline", "error", message="Plan not found")
+            return
+        yield from _run_pipeline_steps(db, plan)
+    finally:
+        db.close()
+
+
+def _run_pipeline_steps(db: Session, plan: Plan) -> Iterator[str]:
     if plan.status != PlanStatus.APPROVED:
         yield _event(
             "pipeline",

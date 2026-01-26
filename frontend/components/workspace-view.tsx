@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { AgentPanel } from "@/components/agent-panel";
 import { CodeEditor } from "@/components/code-editor";
 import { FileTree } from "@/components/file-tree";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -37,6 +38,7 @@ export function WorkspaceView({ repositoryId }: { repositoryId: string }) {
           isLoading={isContentLoading}
         />
       </div>
+      <AgentPanel repositoryId={repositoryId} />
     </>
   );
 }
