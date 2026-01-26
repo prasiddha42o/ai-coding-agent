@@ -22,7 +22,19 @@ from backend.services.llm_client import get_llm_client
 logger = logging.getLogger(__name__)
 
 
+_TITLE_MAX_LENGTH = 80
+
+
 def create_plan(db: Session, session: CodingSession, user_prompt: str) -> Plan:
+    if session.title is None:
+        # First prompt in the session doubles as its title, so the session
+        # history list (frontend) shows something more useful than a
+        # timestamp — truncated since prompts can run much longer than a
+        # one-line label should.
+        session.title = (
+            user_prompt if len(user_prompt) <= _TITLE_MAX_LENGTH else user_prompt[: _TITLE_MAX_LENGTH - 1] + "…"
+        )
+
     repository_context = build_repository_summary(db, session.repository)
     prompt = render(
         PLANNING_PROMPT_TEMPLATE, repository_context=repository_context, user_prompt=user_prompt

@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
+import { RepositoryNav } from "@/components/repository-nav";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useRepository } from "@/hooks/use-repositories";
@@ -33,6 +34,9 @@ export function RepositoryHeader({ repositoryId }: { repositoryId: string }) {
           </Badge>
         </>
       )}
+      <div className="ml-4">
+        <RepositoryNav repositoryId={repositoryId} />
+      </div>
     </header>
   );
 }
