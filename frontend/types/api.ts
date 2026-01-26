@@ -68,6 +68,12 @@ export interface FileTreeNode {
   children: FileTreeNode[] | null;
 }
 
+export interface FileContent {
+  path: string;
+  content: string;
+  language: string | null;
+}
+
 export interface GraphSymbol {
   kind: string;
   name: string;
