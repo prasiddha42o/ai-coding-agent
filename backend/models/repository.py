@@ -1,6 +1,7 @@
 """Repository model — an imported codebase owned by a user."""
 import uuid
 from datetime import datetime
+from typing import TYPE_CHECKING
 
 from sqlalchemy import DateTime, ForeignKey, String, Text
 from sqlalchemy.dialects.postgresql import JSONB, UUID
@@ -9,6 +10,12 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from backend.database.session import Base
 from backend.models.enums import RepositorySourceType, RepositoryStatus
 from backend.models.mixins import TimestampMixin, UUIDPrimaryKeyMixin, enum_column
+
+if TYPE_CHECKING:
+    from backend.models.file import File
+    from backend.models.knowledge_graph import KnowledgeGraphNode
+    from backend.models.session import CodingSession
+    from backend.models.user import User
 
 
 class Repository(UUIDPrimaryKeyMixin, TimestampMixin, Base):

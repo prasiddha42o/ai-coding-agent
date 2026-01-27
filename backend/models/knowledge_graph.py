@@ -8,6 +8,7 @@ tree-sitter are attached as JSON on the node instead of becoming their own
 rows.
 """
 import uuid
+from typing import TYPE_CHECKING
 
 from sqlalchemy import ForeignKey, String, UniqueConstraint
 from sqlalchemy.dialects.postgresql import JSONB, UUID
@@ -15,6 +16,9 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from backend.database.session import Base
 from backend.models.mixins import TimestampMixin, UUIDPrimaryKeyMixin
+
+if TYPE_CHECKING:
+    from backend.models.repository import Repository
 
 
 class KnowledgeGraphNode(UUIDPrimaryKeyMixin, TimestampMixin, Base):

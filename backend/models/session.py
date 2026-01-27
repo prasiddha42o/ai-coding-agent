@@ -1,6 +1,7 @@
 """CodingSession model — one natural-language task and everything it produced."""
 import uuid
 from datetime import datetime
+from typing import TYPE_CHECKING
 
 from sqlalchemy import DateTime, ForeignKey, String
 from sqlalchemy.dialects.postgresql import UUID
@@ -9,6 +10,12 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from backend.database.session import Base
 from backend.models.enums import SessionStatus
 from backend.models.mixins import TimestampMixin, UUIDPrimaryKeyMixin, enum_column
+
+if TYPE_CHECKING:
+    from backend.models.commit import Commit
+    from backend.models.plan import Plan
+    from backend.models.repository import Repository
+    from backend.models.test_run import TestRun
 
 
 class CodingSession(UUIDPrimaryKeyMixin, TimestampMixin, Base):

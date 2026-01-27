@@ -1,5 +1,6 @@
 """TestRun model — results from the Testing Agent executing a repo's test suite."""
 import uuid
+from typing import TYPE_CHECKING
 
 from sqlalchemy import ForeignKey, Integer, String, Text
 from sqlalchemy.dialects.postgresql import JSONB, UUID
@@ -8,6 +9,9 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from backend.database.session import Base
 from backend.models.enums import TestRunner, TestStatus
 from backend.models.mixins import TimestampMixin, UUIDPrimaryKeyMixin, enum_column
+
+if TYPE_CHECKING:
+    from backend.models.session import CodingSession
 
 
 class TestRun(UUIDPrimaryKeyMixin, TimestampMixin, Base):

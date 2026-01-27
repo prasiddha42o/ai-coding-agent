@@ -1,6 +1,7 @@
 """Plan model — the Planning Agent's proposed steps for a user request."""
 import uuid
 from datetime import datetime
+from typing import TYPE_CHECKING
 
 from sqlalchemy import DateTime, ForeignKey, Text
 from sqlalchemy.dialects.postgresql import JSONB, UUID
@@ -9,6 +10,10 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from backend.database.session import Base
 from backend.models.enums import ComplexityLevel, PlanStatus
 from backend.models.mixins import TimestampMixin, UUIDPrimaryKeyMixin, enum_column
+
+if TYPE_CHECKING:
+    from backend.models.change import Change
+    from backend.models.session import CodingSession
 
 
 class Plan(UUIDPrimaryKeyMixin, TimestampMixin, Base):

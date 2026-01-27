@@ -1,5 +1,6 @@
 """Change model — a single file edit produced by the Code Generation Agent."""
 import uuid
+from typing import TYPE_CHECKING
 
 from sqlalchemy import ForeignKey, String, Text
 from sqlalchemy.dialects.postgresql import JSONB, UUID
@@ -8,6 +9,9 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from backend.database.session import Base
 from backend.models.enums import ChangeStatus, ChangeType
 from backend.models.mixins import TimestampMixin, UUIDPrimaryKeyMixin, enum_column
+
+if TYPE_CHECKING:
+    from backend.models.plan import Plan
 
 
 class Change(UUIDPrimaryKeyMixin, TimestampMixin, Base):

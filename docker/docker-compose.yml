@@ -1,0 +1,72 @@
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: ai_coding_agent
+    ports:
+      # Host-side port only for local psql/debugging access — `backend`
+      # itself talks to `db:5432` over the compose network regardless.
+      # Non-default host port so it doesn't fight another Postgres already
+      # bound to 5432 on the host.
+      - "55432:5432"
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # One-shot: applies Alembic migrations, then exits. `backend` waits for it
+  # to succeed rather than migrating on its own boot, so a crash-looping
+  # backend container never leaves the schema half-migrated.
+  backend-migrate:
+    build:
+      context: ../backend
+      dockerfile: ../docker/backend.Dockerfile
+    command: ["sh", "-c", "cd backend && python -m alembic upgrade head"]
+    environment:
+      DATABASE_URL: postgresql+psycopg://postgres:postgres@db:5432/ai_coding_agent
+    depends_on:
+      db:
+        condition: service_healthy
+
+  backend:
+    build:
+      context: ../backend
+      dockerfile: ../docker/backend.Dockerfile
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql+psycopg://postgres:postgres@db:5432/ai_coding_agent
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY:-change-me-in-production}
+      LLM_PROVIDER: ${LLM_PROVIDER:-mock}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      CORS_ORIGINS: '["http://localhost:3000"]'
+    ports:
+      - "8000:8000"
+    volumes:
+      - workspaces:/app/backend/workspaces
+      - uploads:/app/backend/uploads
+    depends_on:
+      backend-migrate:
+        condition: service_completed_successfully
+
+  frontend:
+    build:
+      context: ../frontend
+      dockerfile: ../docker/frontend.Dockerfile
+      args:
+        NEXT_PUBLIC_API_BASE_URL: http://localhost:8000/api/v1
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+
+volumes:
+  db-data:
+  workspaces:
+  uploads:
