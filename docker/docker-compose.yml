@@ -1,24 +1,8 @@
 services:
-  db:
-    image: postgres:16-alpine
-    restart: unless-stopped
-    environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: ai_coding_agent
-    ports:
-      # Host-side port only for local psql/debugging access — `backend`
-      # itself talks to `db:5432` over the compose network regardless.
-      # Non-default host port so it doesn't fight another Postgres already
-      # bound to 5432 on the host.
-      - "55432:5432"
-    volumes:
-      - db-data:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
-      interval: 5s
-      timeout: 5s
-      retries: 10
+  # No local Postgres container — the database is Neon (or any other
+  # Postgres reachable over the network). Both backend-* services read
+  # DATABASE_URL (and everything else) from backend/.env via `env_file`,
+  # so that file is the single place connection details live.
 
   # One-shot: applies Alembic migrations, then exits. `backend` waits for it
   # to succeed rather than migrating on its own boot, so a crash-looping
@@ -28,22 +12,17 @@ services:
       context: ../backend
       dockerfile: ../docker/backend.Dockerfile
     command: ["sh", "-c", "cd backend && python -m alembic upgrade head"]
-    environment:
-      DATABASE_URL: postgresql+psycopg://postgres:postgres@db:5432/ai_coding_agent
-    depends_on:
-      db:
-        condition: service_healthy
+    env_file:
+      - ../backend/.env
 
   backend:
     build:
       context: ../backend
       dockerfile: ../docker/backend.Dockerfile
     restart: unless-stopped
+    env_file:
+      - ../backend/.env
     environment:
-      DATABASE_URL: postgresql+psycopg://postgres:postgres@db:5432/ai_coding_agent
-      JWT_SECRET_KEY: ${JWT_SECRET_KEY:-change-me-in-production}
-      LLM_PROVIDER: ${LLM_PROVIDER:-mock}
-      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
       CORS_ORIGINS: '["http://localhost:3000"]'
     ports:
       - "8000:8000"
@@ -67,6 +46,5 @@ services:
       - backend
 
 volumes:
-  db-data:
   workspaces:
   uploads:

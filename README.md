@@ -51,7 +51,7 @@ deviations from a single-prompt agent.
 |---|---|
 | Frontend | Next.js (App Router), TypeScript, TailwindCSS, shadcn/ui, Monaco Editor, TanStack Query |
 | Backend | FastAPI, SQLAlchemy 2.0, Alembic, Pydantic v2, JWT auth |
-| Database | PostgreSQL |
+| Database | PostgreSQL ([Neon](https://neon.tech), serverless) |
 | AI layer | Anthropic Claude (default), pluggable provider interface for OpenAI/Gemini |
 | Code analysis | Tree-sitter, GitPython, ripgrep |
 | Tooling | Docker, Pytest, ESLint, Ruff, GitHub Actions |

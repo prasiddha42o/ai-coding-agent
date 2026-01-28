@@ -1,47 +1,71 @@
 # Setup
 
-Two ways to run this locally: Docker Compose (fastest, matches production),
+The database is [Neon](https://neon.tech) (serverless Postgres) — there's
+no local Postgres to install or run, in Docker or otherwise. Everything
+else offers two ways to run: Docker Compose (fastest, matches production),
 or running the backend/frontend directly (better for active development —
 hot reload, breakpoints, etc).
 
+## Database: Neon
+
+1. Create a project at [neon.tech](https://neon.tech) (or use an existing
+   one) and grab its connection string from the Neon console — Dashboard
+   → your project → **Connection Details**.
+2. Use the **direct** connection string, not the `-pooler` one. This app
+   is a persistent server process with its own SQLAlchemy connection
+   pool, so it doesn't need Neon's built-in PgBouncer the way a
+   serverless/edge function would — and skipping it avoids PgBouncer
+   transaction-mode caveats (e.g. server-side prepared statements)
+   entirely.
+3. Put it in `backend/.env` as `DATABASE_URL` (see `.env.example` for the
+   shape). Neon requires TLS — the connection string needs
+   `?sslmode=require`.
+
+`backend/database/session.py` is already tuned for a remote/serverless
+Postgres: `pool_pre_ping` catches connections Neon has already dropped
+server-side before a query tries to use them, and `pool_recycle=300`
+proactively retires pooled connections every 5 minutes rather than
+assuming they stay open indefinitely.
+
+CI is the one place that still uses a disposable local Postgres — see
+`.github/workflows/ci.yml`. That's a deliberate, separate choice: a
+throwaway `postgres:16-alpine` service container is faster, free, and
+keeps test runs from touching a real Neon branch, regardless of what the
+app itself connects to elsewhere.
+
 ## Option A — Docker Compose
 
-Requires Docker.
+Requires Docker and a `backend/.env` with `DATABASE_URL` set (see above —
+`backend-migrate` and `backend` both load that file via `env_file`).
 
 ```bash
 cd docker
 docker compose up -d
 ```
 
-This builds and starts four things: Postgres, a one-shot `backend-migrate`
-container that applies Alembic migrations and exits, the FastAPI backend,
-and the Next.js frontend.
+This builds and starts three things: a one-shot `backend-migrate`
+container that applies Alembic migrations against Neon and exits, the
+FastAPI backend, and the Next.js frontend.
 
 - Frontend: http://localhost:3000
 - Backend: http://localhost:8000 (docs at `/docs`)
-- Postgres: exposed on host port `55432` (not the default `5432`, so it
-  doesn't collide with a Postgres you may already have running) — connect
-  with `postgresql://postgres:postgres@localhost:55432/ai_coding_agent`
 
 By default the backend runs with `LLM_PROVIDER=mock`, so the full pipeline
 (plan → generate → review → apply → test → commit) runs end-to-end without
 any API key — the Planning/Code Generation/Review/Git agents just return
 empty/placeholder structured output instead of real model completions. To
-use real Claude completions, set an API key before starting:
+use real Claude completions, set `LLM_PROVIDER=anthropic` and
+`ANTHROPIC_API_KEY` in `backend/.env` instead.
 
-```bash
-ANTHROPIC_API_KEY=sk-ant-... LLM_PROVIDER=anthropic docker compose up -d
-```
-
-Stop everything with `docker compose stop`; `docker compose down -v` also
-drops the Postgres volume (and therefore all data).
+Stop everything with `docker compose stop`.
 
 ## Option B — Run directly
 
 ### Backend
 
-Requires Python 3.11+, a Postgres instance, and `ripgrep` (`brew install
-ripgrep` / `apt install ripgrep`) on PATH for code search.
+Requires Python 3.11+, a Neon connection string (see above), and
+`ripgrep` (`brew install ripgrep` / `apt install ripgrep`) on PATH for
+code search.
 
 ```bash
 cd backend
@@ -59,8 +83,9 @@ cd ..
 uvicorn backend.main:app --reload --port 8000
 ```
 
-Run the test suite (needs its own reachable Postgres — `DATABASE_URL` env
-var, migrated the same way):
+Run the test suite (uses whatever `DATABASE_URL` is set in your
+environment — including Neon; each test runs inside a rolled-back
+SAVEPOINT, so it's safe to point at a real database):
 
 ```bash
 pytest backend/tests -v
@@ -94,3 +119,6 @@ Dockerized instance on the same machine during development).
   other way, make sure that pin held.
 - **`tree-sitter-languages` import errors**: it's incompatible with
   `tree-sitter>=0.22`; `requirements.txt` pins `tree-sitter==0.21.3`.
+- **`sslmode` errors / connection refused to Neon**: make sure
+  `?sslmode=require` is on the connection string, and that you copied the
+  direct (not pooled) host from the Neon console.
